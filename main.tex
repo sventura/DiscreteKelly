@@ -1,0 +1,594 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}%(only for the pdftex engine)
+%\RequirePackage[no-math]{fontspec}[2017/03/31]%(only for the luatex or the xetex engine)
+\usepackage[small]{dgruyter}
+\usepackage{microtype}
+
+% Table positioning
+\usepackage{float}
+
+% Code highlighting
+\usepackage{listings}
+\usepackage{mathtools}
+
+% Bibliography
+\usepackage[round]{natbib}
+% Make citations in author / date format
+\bibliographystyle{plainnat}
+
+\newtheorem{theorem}{Theorem}
+
+% Remove Indentation
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+  % \articletype{...}
+
+  % \author*[1]{...}
+  \author[1]{Jeff Phillips}
+  \author[2]{Samuel L. Ventura}
+  \runningauthor{Phillips, Ventura}
+  \affil[1]{Carnegie Mellon University, Department of Mathematics}
+  \affil[2]{Carnegie Mellon University, Department of Statistics \& Data Science}
+  \title{An Extension of the Kelly Criterion for Scenarios with Discrete Bet Amounts}
+  \runningtitle{Discrete Kelly}
+  % \subtitle{...}
+  % Shortened abstract:
+  \abstract{The Kelly criterion is a long-term betting strategy that outputs a fixed fraction of a bankroll to wager given the probability of winning the bet and the bet’s payoff odds. The corresponding “Kelly Bet” maximizes the expected logarithm of the bettor’s bankroll \citep{kellyoriginal}. This betting strategy has been extended to many scenarios, including bets with non-binary outcomes \citep{horse}, asset optimization in the stock market \citep{stock1, stock2, investment}, and sports betting \citep{thorp3}. However, many modern betting scenarios restrict the bettor to discrete bet amounts. For example, in daily fantasy sports (DFS), bettors may only enter contests with fixed entry fees (e.g. \$1, \$5, \$25, or \$100). What happens when a bettor cannot submit a Kelly Bet because it is not an allowed bet amount? We provide a framework for determining the “Discrete Kelly Bet”, given arbitrary allowed \textit{discrete} bet amounts, probability of winning, and payoff odds. By isolating one variable (e.g. probability of winning the bet) and holding the others constant (e.g. the odds of winning the bet and the bettor’s bankroll), we can define optimal regions for each bet amount. Our simulation studies demonstrate that the Discrete Kelly Bet affords many of the same desirable properties \citep{properties} as the Kelly criterion.}
+  
+  % Old abstract:
+  % \abstract{The Kelly criterion is a long-term betting strategy that provides the optimal fraction of a bankroll to wager given the probability of winning the bet and the bet's payoff odds. The corresponding wager, called the ``Kelly Bet,'' maximizes the expected logarithm of the bettor's bankroll \citep{kellyoriginal}. This betting strategy has been extended to many betting scenarios, including bets with non-binary outcomes \citep{horse}, asset optimization in the stock market \citep{stock1, stock2, investment}, and sports betting \citep{thorp3}. However, many modern betting scenarios restrict the bettor to discrete bet amounts. For example, in daily fantasy sports (DFS), bettors know their payoff odds and can approximate their probability of winning, but are only allowed to wager in fixed, discrete amounts (e.g. \$1, \$5, \$25, or \$100). What happens when a bettor (or an investor) cannot submit a Kelly Bet because it is not an allowed bet amount? In this work, we provide a framework for determining the Kelly Bet in scenarios with discrete bet amounts, given any arbitrary probability of winning, payoff odds, and allowed bet amounts. We show that by isolating an individual variable (e.g. probability of winning the bet) and holding the other variables constant (e.g. the odds of winning the bet and the bet amounts), we can define the regions over the continuous space of the isolated variable for which each particular bet amount is optimal. Thus, bettors can easily determine the optimal bet amount using the formulas we provide. We demonstrate that our approach for determining the ``Discrete Kelly'' bet affords many of the same desirable properties as the Kelly criterion via simulation studies.}
+  \keywords{Kelly criterion, betting strategies, daily fantasy sports, logarithmic wealth}
+  % \classification[PACS]{...}
+  % \communicated{...}
+  % \dedication{...}
+  % \received{...}
+  % \accepted{...}
+  % \journalname{...}
+  % \journalyear{...}
+  % \journalvolume{..}
+  % \journalissue{..}
+  \startpage{1}
+  % \aop
+  % \DOI{...}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+
+The Kelly criterion is a long-term betting strategy that, given a bet's probability and odds, outputs a fraction of the bettor's bankroll with which to wager. This wager, called the ``Kelly Bet,'' maximizes the expected logarithm of the bettor's bankroll. When this bet is repeated, the bettor's bankroll is expected to follow a geometric growth function, which is desirable in a long-term scenario. This betting strategy has been generalized to many scenarios and applications, as detailed in Section \ref{sec:lit}.
+
+\subsection{Literature Review}
+\label{sec:lit}
+
+This formula for the fraction of current bankroll to bet is  $f = \frac{p (a + 1) - 1}{a}$, where $p$ is the probability of winning the bet and $a$ is the payoff odds of the bet \citep{kellyoriginal}. In practice, one would multiply this fraction by their bankroll $B$ to determine the ``Kelly Bet.'' In the initial paper, Kelly derives the formula for the Kelly criterion and proves its optimality in the context of expected logarithmic wealth. He presents this initially in the context of information theory, but later introduces its application to gambling while discussing the idea of a ``track take,'' or non-even odds $a$.
+
+\
+
+\cite{breiman} elaborates on Kelly's strategy, explaining the advantages of maximizing expected logarithmic wealth. In short, it is found that a bettor that maximizes expected logarithmic wealth is expected to have an infinitely larger bankroll in the long run than any other bettor. Likewise, a bettor is expected to reach a fixed `goal' bankroll the fastest when using Kelly strategy. 
+
+\
+
+Significant work related to the Kelly criterion has been done in the space of sports betting. \cite{horse} extend Kelly strategy to scenarios with non-binary outcomes, specifically horse racing. \cite{unknownp} use a Bayesian approach to extend Kelly strategy to cases in which the exact probability $p$ of winning is unknown. In the five sports betting cases they studied (including a real data example), it is found that a less aggressive, ``Modified'' Kelly wager outperformed the original Kelly bet by providing more consistent returns. 
+
+\subsection{Motivation}
+\label{sec:motivation}
+
+In many modern gambling scenarios, however, it is impossible to bet the suggested Kelly wager. \cite{thorp2} declares this while examining Baccarat: ``in practice, the system of Kelly must be modified to fit reality. Because integral bets only are allowed, once can generally only approximate the optimal [bet] called for by Kelly.''
+
+\
+
+In this paper, we explore this research gap using the increasingly popular field of daily fantasy sports (DFS). DFS is a system of sports betting in which a bettor builds a lineup of players and submits it into a set of contests with discrete buy-ins. Applying Kelly strategy to DFS has been explored informally by sports betting sites such as MyBookie \citep{mybookie} and RotoGrinders \citep{rotogrinders}. 
+
+\
+
+Consider a simplified version of the DFS gambling environment: a bettor has constructed a lineup with a significant edge over the competition. In fact, it will win $\frac{2}{3}$ of the time when entered in ``50/50s'' contests, which payout 1.9 times their bet. The entry fees of the games available to them are \$1, \$2, \$5, \$10, \$25 and \$50. Suppose the bettor has a \$100 bankroll, making the Kelly bet \$29.63.  What should they do?
+
+\
+
+This paper provides a framework to answer questions like this. Concretely, we isolate each variable -- the bettor's bankroll, the probability of winning the bet, and the payoff odds of the bet -- and define regions over that variable for which each fixed bet is preferable. To do so, we identify logarithmic wealth curves for each fixed bet, determine formulas to find their intersection points, and provide decision rules for which fixed bet to choose. With those decision rules in hand, we run simulations to compare a ``Discrete Kelly'' bettor to others following ad hoc betting strategies, where we find that our approach preserves many desirable properties of the Kelly criterion -- such as maximal expected median bankroll and avoiding going bankrupt.
+
+\section{Kelly Criterion: Theory / Notation}
+\label{sec:theoreticalKelly}
+
+In this section, we review Kelly strategy in the traditional case. Section \ref{sec:setup} overviews our notation. Section \ref{sec:util} discusses the underlying theory of the Kelly criterion: maximizing expected logarithmic wealth. 
+
+\subsection{Sports Betting and Parameter Review}
+\label{sec:setup}
+
+In the real world, there are many betting scenarios that pit a bettor against ``The House.'' It is famously said that ``The House always wins,'' meaning that gambling establishments set payouts such that the bets fall in their favor. Concretely, in every contest, The House takes a fixed cut in order to remain profitable. The House is present in all professional gambling environments (e.g. the track in horse racing, the casino in blackjack, FanDuel or DraftKings in DFS, etc).
+
+\
+
+In this paper, we use repeated independent trials of an event that occurs with probability $p$. We also have a bettor with bankroll $B$ that can choose from a set of wagers $W$ offered by a gambling establishment that will pay out $a$ times the wager in the event of a win.
+
+\
+
+In short, we have the following parameters:
+
+\
+
+\begin{itemize}
+    \item $p \in (0,1)$, the probability of winning the bet.
+    \item $a \in \mathbb{R}^+$, the odds offered (e.g. for $a$ = 2, a \$10 bet would award a \$20 profit)
+    \item $w \in W$, where $w$ is a wager amount and $W$ is a finite set of possible wagers.
+    \item $B \in \mathbb{R}^{+}$, the bettor's total bankroll.
+\end{itemize}
+
+\subsection{Utility Function}
+\label{sec:util}
+
+In the case of a win, the player's bankroll grows by a factor of $1+\frac{aw}{B}$, and in the case of a loss, $1-\frac{w}{B}$. The equation for the bettor's expected logarithmic wealth, given $p, a, w, B$ is:
+
+\begin{equation} \label{eq:1}
+g(p, a, w, B) = p*\log(1+\frac{aw}{B}) + (1-p)*\log(1-\frac{w}{B})
+\end{equation}
+
+A Kelly bettor seeks to maximize the expected logarithmic wealth \citep{thorp1}, thus choosing:
+
+\begin{equation} \label{eq:2}
+w^* = \underset{w\in W}{\operatorname{argmax}}\ \bigg\{p*\log(1+\frac{aw}{B}) + (1-p)*\log(1-\frac{w}{B})\bigg\}
+\end{equation}
+
+In the traditional case, the set $W$ is dense and thus Equation \ref{eq:1} reduces to the Kelly criterion upon taking first-order conditions (proof in Appendix \ref{sec:kelly_derivation}). In this paper, we focus on the case where $W$ is finite. We study scenarios in which exactly one of $p$, $a$, and $b$ is arbitrary and the rest are fixed, draw utility curves, and base our betting decision on the intersection points. In each case we will consider two possible bets $G_1$ and $G_2$ with wagers $w_1$ and $w_2$ and define a decision boundary on the arbitrary variable where each bet is advantageous.
+
+\
+
+In practice, it is common for a bettor to know implicitly two of these parameters, but only have an estimate for the third. For example, a DFS bettor typically knows the payoff odds and the available bet amounts, but needs to estimate the probability of winning (as in Section \ref{sec:probability}). 
+
+\
+
+Section \ref{sec:discreteKelly} provides a set of decision rules that defines ``Discrete Kelly'' strategy based on which variable is arbitrary and its corresponding estimate. We motivate each proof with a DFS-themed example.
+
+\section{The Kelly Criterion with Discrete Bet Amounts}
+\label{sec:discreteKelly}
+
+In this section, we provide a framework for determining the Kelly bet in scenarios with discrete bet amounts.  Section \ref{sec:Kellyestimation} provides a starting point for deriving Kelly strategy in the discrete case. Sections \ref{sec:probability}, \ref{sec:odds}, and \ref{sec:bankroll} expand upon this by providing decision rules for Kelly strategy in situations where $p$, $a$, and $B$ are varied, respectively. %Each of the final three sections contains an accompanying example and subsequent visualization.
+
+\subsection{Bookending the Kelly Bet}
+\label{sec:Kellyestimation}
+
+In any betting scenario, the bettor may use the Kelly criterion to find the optimal wager $w_{Kelly}$ without the integer constraint. In practice, $w_{Kelly}$ will fall between two integral bets $w_1 , w_2 \in W$. That is, we can find:
+$$w_1, w_2 \in W \mid (w_1 < w_{Kelly} < w_2) \land (W \cap (w_1, w_{Kelly}) = W \cap (w_{Kelly}, w_2) = \varnothing)$$
+Using properties of the utility function (see Appendix \ref{sec:kelly_derivation}), it is seen that $\forall w \in W \mid w < w_1$, $g(w) < g(w_1) $, and similarly $\forall w \in W \mid w > w_2$, $g(w) > g(w_2)$. This will allow the bettor to narrow their focus to the two integral bets ($w_1$ and $w_2$) that bookend the Kelly bet.
+
+\
+
+The algebra below gets us to a starting point for each of the derivations to follow.
+
+\begin{align}
+    \mathbb{E}[G_1] &= \mathbb{E}[G_2] \nonumber \\ 
+    p \log(1+\frac{aw_1}{b}) + (1-p) \log(1-\frac{w_1}{b}) &= p \log(1+\frac{aw_2}{b}) + (1-p) \log(1-\frac{w_2}{b}) \nonumber \\
+    (1+\frac{aw_1}{b})^p (1-\frac{w_1}{b})^{1-p} &= (1+\frac{aw_2}{b})^p (1-\frac{w_2}{b})^{1-p} \nonumber \\
+    \left(\frac{1+\frac{aw_1}{b}}{1+\frac{aw_2}{b}}\right)^p &= \left(\frac{1-\frac{w_2}{b}}{1-\frac{w_1}{b}}\right)^{1-p} \nonumber \\
+    \left(\frac{b+aw_1}{b+aw_2}\right)^p &= \left(\frac{b-w_2}{b-w_1}\right)^{1-p} \label{eq:3}
+\end{align}
+
+\subsection{Varying Probability}
+\label{sec:probability}
+
+\begin{theorem}
+\label{decisionrulep}
+Suppose the following quantities are known: odds $a$, bankroll $B$, and possible fixed wagers $w_1 < w_2$ bookending the theoretical Kelly wager $w_{Kelly}$. Then, the Discrete Kelly bet is:
+\[ DK(p, a, B) = 
+\begin{dcases} 
+      w_1 & p < \frac{\log\left(\frac{b-w_2}{b-w_1}\right)}{\log\left(\frac{b+aw_1}{b+aw_2}\right) + \log\left(\frac{b-w_2}{b-w_1}\right)} \\
+      w_2 & otherwise
+\end{dcases}
+\]
+
+\end{theorem}
+
+\subsubsection{Motivation}
+\label{sec:probabilitymotivation}
+
+50/50s are a DFS variant in which the top half of entries win and all get paid the same amount (roughly double their wager amount, minus the house take). %DFS bettors may favor low-variance strategies when entering 50/50s.
+
+\
+
+For this example, consider the scenario introduced in Section \ref{sec:motivation}. Suppose we have a bettor with a bankroll of \$100. This bettor is looking to enter a 50/50 contest, of which the house offers buy-ins of \$1, \$2, \$5, \$10, \$25, and \$50. The house will take a 10\% cut of each of the possible contests. After estimating their probability of winning the contest, $p$, the bettor is ready to use our decision rule. In other words, $a = 0.9$, $W = \{1, 2, 5, 10, 25, 50 \}$, $B = 100$, and $p$ has been estimated.
+
+\subsubsection{Proof of Theorem \ref{decisionrulep}}
+\label{sec:probabilityproof}
+
+Now, we consider two bets, $G_1$ and $G_2$, with corresponding wagers $w_1$ and $w_2$. We hold the other variables constant and solve for $p$, with the goal of finding a $p$ where $G_1$ and $G_2$ are of equal value. We begin at Equation (\ref{eq:3}).
+
+\begin{align}
+    \left(\frac{b+aw_1}{b+aw_2}\right)^p &= \left(\frac{b-w_2}{b-w_1}\right)^{1-p} \nonumber \\
+    p\log\left(\frac{b+aw_1}{b+aw_2}\right) &= (1-p)\log\left(\frac{b-w_2}{b-w_1}\right) \nonumber \\
+    \log\left(\frac{b-w_2}{b-w_1}\right) &= p(\log\left(\frac{b+aw_1}{b+aw_2}\right) + \log\left(\frac{b-w_2}{b-w_1}\right)) \nonumber \\
+    p &= \frac{\log\left(\frac{b-w_2}{b-w_1}\right)}{\log\left(\frac{b+aw_1}{b+aw_2}\right) + \log\left(\frac{b-w_2}{b-w_1}\right)} \label{eq:4}
+\end{align}
+
+As such, given a bet with payoff odds $a$, possible wager amounts $w_1$ and $w_2$ with $w_1 < w_2$, and bankroll $b$, Equation \ref{eq:4} tells us that the two wagers have the same `value' at probability $p$. If the true win probability  $p_{actual}>p$, then our Discrete Kelly strategy prefers a wager of $w_2$. If $p_{actual}<p$, $w_1$ is preferred.
+
+\subsubsection{Visualization}
+\label{sec:probabilityviz}
+
+We turn back to the example given in Section \ref{sec:probabilitymotivation}. Figure \ref{fig:varyp} shows the utility curves of each bet (solid), along with the theoretical Kelly maximum (dashed). The intersection points of the solid lines can be found using Equation (\ref{eq:4}).
+
+\
+
+For easier viewing, the optimal bet regions are also identified by the background color of the graph.
+
+\
+
+Suppose that $p_{actual} = \frac{2}{3} \approx .667$. From this image, we see that the optimal bet is \$25, as the green line is higher than the rest, and the background color of the graph at $p_{actual} = \frac{2}{3}$ is green. Indeed, the Kelly bet $w_{Kelly} = \$29.63$ (Point I), the intersection point between the \$10 and \$25 wagers is $p \approx .61$ (Point II) and the intersection point between the \$25 and \$50 wagers is $p \approx .706$ (Point III).
+
+\begin{figure}
+    \centering
+    \includegraphics[width = \textwidth]{intersection_plots/varyp.png}
+    \caption{Logarithmic wealth as a function of probability ($a = 0.9$, $B = 100$).}
+    \label{fig:varyp}
+\end{figure}
+
+\subsection{Varying Odds}
+\label{sec:odds}
+
+\begin{theorem}
+\label{decisionrulea}
+Suppose the following quantities are known: probability $p$, bankroll $B$, and possible fixed wagers $w_1 < w_2$ bookending the theoretical Kelly wager $w_{Kelly}$. Then, the Discrete Kelly bet is:
+\[ DK(b, a, B) = 
+\begin{dcases} 
+      w_1 & a < \frac{b\left(\frac{b-w_2}{b-w_1}\right)^{\frac{1-p}{p}} - b}{w_1-w_2\left(\frac{b-w_2}{b-w_1}\right)^{\frac{1-p}{p}}} \\
+      w_2 & otherwise
+\end{dcases}
+\]
+\end{theorem}
+
+\subsubsection{Motivation}
+\label{sec:oddsmotivation}
+
+Suppose the house is designing a set of new, higher stakes multiplier games with entry fees of \$1K, \$2K, \$5K, \$10K, \$25K and \$50K. It wants to entice seasoned bettors to enter these games, so it decides to offer a lower than normal ``track take.'' To tune the payout multiplier, the house studies a bettor with a bankroll of \$100K and a lineup with a 66.67\% chance of winning to determine which of the new premium games the bettor will enter if following Kelly strategy. Here, $p = \frac{2}{3}$, $W = \{1000, 2000, 5000, 10000, 25000, 50000\}$, $B = 100000$, and we study the effect of varying $a$.
+
+\subsubsection{Proof of Theorem \ref{decisionrulea}}
+\label{sec:oddsproof}
+
+As in the previous section, we begin at Equation (\ref{eq:3}). This time we fix $p$ and solve for $a$.
+
+\begin{align}
+    \left(\frac{b+aw_1}{b+aw_2}\right)^p &= \left(\frac{b-w_2}{b-w_1}\right)^{1-p} \nonumber \\
+    \frac{b+aw_1}{b+aw_2} &= \left(\frac{b-w_2}{b-w_1}\right)^{\cfrac{1-p}{p}} \nonumber \\
+    b+aw_1 &= (b+ aw_2) \left(\frac{b-w_2}{b-w_1}\right)^{\frac{1-p}{p}} \nonumber \\
+    a &= \frac{b\left(\frac{b-w_2}{b-w_1}\right)^{\frac{1-p}{p}} - b}{w_1-w_2\left(\frac{b-w_2}{b-w_1}\right)^{\frac{1-p}{p}}} \label{eq:5}
+\end{align}
+
+So, given a bet with win probability $p$, possible wager amounts $w_1$ and $w_2$ with $w_1 < w_2$, and bankroll $b$, Equation (\ref{eq:5}) tells us that the two wagers render the same expected utility at $a$. If the actual odds offered $a_{actual}>a$, we bet $w_2$, otherwise $w_1$ is preferred.
+
+\subsubsection{Visualization}
+\label{sec:oddsviz}
+
+Figure \ref{fig:varya} uses the example given in Section \ref{sec:oddsmotivation} to draw utility curves. The format of this graph is similar to the one shown in Section \ref{sec:probabilityproof}, although this time we have odds on the x-axis. The intersection points of the solid lines can be found using Equation (\ref{eq:5}).
+
+\
+
+Suppose that $a_{actual} = .9$. From this image, we see that the optimal bet is \$25K. Indeed, the Kelly bet $w_{Kelly} \approx \$29629$ (Point I), the intersection point between the \$10000 and \$25000 wagers is $a \approx .68$ (Point II) and the intersection point between the \$25000 and \$50000 wagers is $a \approx 1.16$ (Point III).
+
+\begin{figure}
+    \centering
+    \includegraphics[width = \textwidth]{intersection_plots/varya.png}
+    \caption{Logarithmic wealth as a function of odds ($p = \frac{2}{3}$, $B = 100000$).}
+    \label{fig:varya}
+\end{figure}
+
+\subsection{Varying Bankroll}
+\label{sec:bankroll}
+
+\begin{theorem}
+\label{decisionruleB}
+No closed form.
+\end{theorem}
+
+\subsubsection{Motivation}
+\label{sec:bankrollmotivation}
+
+Another popular DFS variant is Head to Head. In this game type, a bettor builds a lineup and plays against just one competitor. The winner will take home the sum of both players' bets minus a track take administered by the betting agency.
+
+\
+
+Suppose that a bettor has constructed a methodology which produces a lineup which they have convinced their friends is a ``surefire winner'' in any head to head matchup (in reality, $p = \frac{2}{3}$). The house will always take a 10\% cut, and our bettor is waiting to gather cash from their friends before choosing between \$1, \$2, \$5, \$10, \$25, and \$50 games. Thus, $p = .6$, $a = .9$, $W = \{1, 2, 5, 10, 25, 50\}$, and we study the effect of varying $B$.
+
+\subsubsection{Finding The Intersection Points Computationally}
+\label{sec:bankrollproof}
+
+Although there is no closed form that describes the intersection between two logarithmic value curves (unlike the previous two sections), these intersection points can be identified using numerical methods. 
+
+\
+
+To do so, we use a similar strategy to our previous proofs, but instead of using algebra, in Appendix \ref{sec:rscript} we provide an implementation of Newton's method that will work in this case.
+
+\subsubsection{Visualization}
+
+We will use the example presented in Section \ref{sec:bankrollmotivation} to illustrate the efficacy of the \lstinline{find_intersection_points()} function. 
+
+\
+
+Table \ref{tab:intersection} provides the output of
+
+\lstinline{find_intersection_points(2/3, .9, c(1,2,5,10,25,50))}:
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{bet\_1} & \textbf{bet\_2} & \textbf{intersection} \\ \hline
+        1               & 2               & 5.1017                \\ \hline
+        2               & 5               & 11.963                \\ \hline
+        5               & 10              & 25.508                \\ \hline
+        10              & 25              & 59.816                \\ \hline
+        25              & 50              & 127.54                \\ \hline
+    \end{tabular}
+    \caption{Intersection points for the example in Section 3.4.}
+    \label{tab:intersection}
+\end{table}
+
+Consider a bettor that has accumulated a bankroll of \$100.  The corresponding region in Figure \ref{fig:varyb} is colored green, thus \$25 is the optimal bet (Point I). Referencing Table \ref{tab:intersection}, the \$10 and \$25 curves intersect at \$59.81 (Point II), and the \$25 and \$50 curves intersect at around \$127.54 (Point III).
+
+\begin{figure}
+    \centering
+    \includegraphics[width = \textwidth]{intersection_plots/varyb.png}
+    \caption{Logarithmic wealth as a function of bankroll ($p = \frac{2}{3}$, $a = .9$).}
+    \label{fig:varyb}
+\end{figure}
+
+\section{Simulation Studies}
+\label{sec:simulation}
+
+To illustrate the effectiveness of the ``Discrete Kelly'' betting strategies and decision rules outlined in Section \ref{sec:discreteKelly}, we study a simulation of a betting environment in which different betting strategies are employed. We introduce metrics that measure betting success, discuss their established behavior under the traditional Kelly case, and apply them to our discrete betting environment.
+
+\
+
+We introduce a new scenario that has been designed to show divergent behavior and discuss the long-run utility of the strategy.
+
+\subsection{Design}
+
+We first define a set of betting strategies: %(some more naive than others)
+
+\begin{enumerate}
+    \item \textbf{Discrete Kelly:} Pick the bet that maximizes expected logarithmic wealth.
+    \item \textbf{Closest Bookend Bet:} Select the integral bet closest to the Kelly bet.
+    \item \textbf{Random Bookend Bet:} Randomly choose between the two integral bets that bookend the Kelly bet.
+    % \item \textbf{Random Discrete Bet:} Pick a bet at random of the possible wagers that can be afforded.
+    % \item \textbf{Highest Discrete Bet:} Bet the highest wager that can be afforded.
+    \item \textbf{Theoretical Kelly:} Although impossible to use in scenarios with discrete bet amounts, we will include a strategy that implements the Kelly bet without the integer constraint for comparison purposes.
+\end{enumerate}
+
+We use a set of parameters slightly more complicated than the previous scenarios: $p = 0.55, a = 1, W = \{2^x \forall x \in \mathbb{N}\} \cup \{0\}, B = 100$. We ran 10,000 simulations, each with 10,000 betting events.
+
+\
+
+We included a large set of possible wagers, as well as the ability to not bet ($w = 0$). As the bankroll grows over time, we need to make sure that there are always two possible wagers that bookend the Kelly bet (Otherwise, any pseudo-Kelly strategy would simply pick the highest possible wager amount).
+
+
+\subsection{Evaluating Betting Strategies}
+\label{sec:eval}
+
+We use several different approaches to evaluate the betting strategies, utilizing the summary provided by \cite{properties} to comment on whether these approaches are consistent with historically proven Kelly behavior.
+
+\subsubsection{Within-Simulation Compares}
+\label{sec:within_simulation_compares}
+
+% TODO: clean this up, add citation
+It has been shown that the expected bankroll ratio at any point of time between a Kelly bettor and any other bettor is less than or equal to one.
+
+\
+
+In our simulation study, we avoid taking bankroll ratios due to complications arising when bankrolls equal zero (see \ref{sec:going_bankrupt}). Instead we approximate this in Figure \ref{fig:beat_or_tie} by counting at each point in time how many times each strategy is ahead of Discrete Kelly. We see that Discrete Kelly often beats each of the other discrete strategies -- and the gap widens over time. Discrete Kelly beats out Theoretical Kelly about 25\% of the time, showing that the optimal betting strategy does not always come out with the higher bankroll. In fact this is around the same proportion that Random Bookend beats out Discrete Kelly.
+
+\begin{figure}
+    \centering
+    \includegraphics[width = \textwidth]{simulation_plots/beat_or_tie.png}
+    \caption{Alternative strategies and how often they beat or tie Discrete Kelly. Ties are negligible after a short period of time.}
+    \label{fig:beat_or_tie}
+\end{figure}
+
+\subsubsection{Median Bankroll}
+\label{sec:median}
+
+Next, we measure the median bankroll of each strategy at each point in time.
+
+Figure \ref{fig:medians} shows the Discrete Kelly bettor taking a slight edge against the Closest Bookend bettor, with the Random Bookend bettor far behind. Discrete Kelly finishes with a median bankroll of \$14.29M vs Closest Bookend at \$14.16M. Maximizing median expected bankroll is a property historically associated with Kelly betting strategy \citep{median_fortune}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width = \textwidth]{simulation_plots/medians.png}
+    \caption{Median bankroll over time by betting strategy. Results presented with log-scaled y-axis.}
+    \label{fig:medians}
+\end{figure}
+
+\subsubsection{Arithmetic Mean Bankroll}
+\label{sec:arithmetic_mean}
+
+We also make the same measurement for arithmetic mean bankroll. However, this measurement rewards risky behavior and is not consistent with Kelly principles. Figure \ref{fig:means} shows that Discrete Kelly is in fact outperformed by the other discrete strategies.
+
+\begin{figure}
+    \centering
+    \includegraphics[width = \textwidth]{simulation_plots/means.png}
+    \caption{Mean bankroll over time by betting strategy. Results presented with log-scaled y-axis.}
+    \label{fig:means}
+\end{figure}
+
+\subsubsection{Going Bankrupt}
+\label{sec:going_bankrupt}
+
+Risky behavior leads to ``going bankrupt'', another measurement that we record for each betting strategy. 
+
+\
+
+For continuous Kelly, a bettor will never go bankrupt \citep{never_ruin}. In the discrete case, however, when a bettor's bankroll is sufficiently low, a Discrete Kelly bettor will choose to stop betting because any possible bet would yield a negative expected logarithmic bankroll. Of our betting strategies, Discrete Kelly and Closest Bookend will follow this behavior.
+
+\
+
+If a bettor's bankroll is the same for 2 consecutive betting cycles, we assume they are done betting. For simplicity we consider this the same as going bankrupt.
+
+\
+
+In Table \ref{tab:going_bankrupt} we see Discrete Kelly going bankrupt less frequently than the other discrete betting strategies. Of course, Theoretical Kelly never goes bankrupt.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Betting Strategy}   & \textbf{Percent of Runs Gone Bankrupt}   \\ \hline
+        Closest Bookend             & 7.79\%                                \\ \hline
+        Discrete Kelly              & 7.62\%                                \\ \hline
+        Theoretical Kelly           & 0\%                                   \\ \hline
+        Random Bookend              & 11.12\%                               \\ \hline
+    \end{tabular}
+    \caption{Frequency of going bankrupt for each betting strategy.}
+    \label{tab:going_bankrupt}
+\end{table}
+
+\subsubsection{Geometric Mean}
+\label{sec:geometric_mean}
+
+As mentioned by \cite{kellyoriginal}, maximizing logarithmic wealth will also maximize geometric mean: ``At every bet he maximizes the expected value of the logarithm of his capital. The reason has nothing to do with the value function which he attached to his money, but merely with the fact that it is the logarithm which is additive in repeated bets and to which the law of large numbers applies.'' This has also been formalized in a blog post by \cite{geometric_mean}.
+
+\
+
+However, measuring the geometric mean on a set of outcomes including 0 will cause the output to also be 0. We use an adjusted geometric mean that removes runs in which the bettor goes bankrupt (\ref{sec:going_bankrupt}). 
+
+\
+
+We present this measurement in Figure \ref{fig:gm_means} alongside the bettor's frequency of not going bankrupt. We find that in both metrics, Discrete Kelly outperforms all other discrete betting strategies.
+
+\begin{figure}
+    \centering
+    \includegraphics[width = \textwidth]{simulation_plots/gm_mean_and_gone_bankrupt.png}
+    \caption{Geometric mean of final bankroll and not going bankrupt frequency by betting strategy. Results presented with log-scaled y-axis.}
+    \label{fig:gm_means}
+\end{figure}
+
+% Justification for why a Kelly bettor stops betting before bankroll hits zero. A bit hand wavy an imprecise so will not include unless necessary.
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[width = \textwidth]{simulation_plots/gone_bankrupt.png}
+%     \caption{Frequency of going bankrupt by betting strategy.}
+%     \label{fig:going_bankrupt}
+% \end{figure}
+
+% A Kelly bettor will stop betting when their bankroll is at or below the minimum bet amount. To show this, we return to our expected value function [\ref{eq:1}]:
+
+% First we calculate the expected logarithmic value of no bet:
+
+% \begin{align*}
+%     g(p, a, w = 0, B) &= p*\log(1+\frac{a*0}{B}) + (1-p)*\log(1-\frac{0}{B}) \\
+%     &= p * log(1) + (1-p) * log(1) \\
+%     &= 0
+% \end{align*} 
+
+% And the expected logarithmic value of betting full bankroll: 
+
+% \begin{align*}
+%     g(p, a, w = B, B) &= p*\log(1+\frac{a*B}{B}) + (1-p)*\log(1-\frac{B}{B}) \\
+%     &= p * log(1 + a) + (1-p) * log(0) \\
+%     % OK to use this?
+%     &= -\infty
+% \end{align*} 
+
+% Under our simulation conditions bettors are not allowed to place wagers they cannot cover in their bankroll. So for $w_-$ being the smallest available wager, a Kelly bettor will certainly not bet for $B <= w_-$.
+
+\section{Discussion}
+\label{sec:discussion}
+
+% Discuss can just be short and sweet.  
+
+% Summarize the paper -- what you did, what the main theoretical contributions were, what the main results were, and the limitations. 
+
+In this work, we extend Kelly betting strategy to scenarios with discrete bet amounts.  Using a simulation study, we compare this to other ad hoc discrete betting strategies and found the results to be consistent with proven properties of traditional Kelly strategy. Specifically, we find that: (1) Discrete Kelly outperforms the other strategies when comparing within each run (Section \ref{sec:within_simulation_compares}), (2) the median bankroll of a Discrete Kelly bettor is marginally higher than that of other strategies (Section \ref{sec:median}), (3) Discrete Kelly marginally loses to other (riskier) strategies in terms of mean bankroll (Section \ref{sec:arithmetic_mean}), (4) Discrete Kelly bettors go bankrupt less often than others, a measurement unique to the discrete case which sometimes confounded comparisons to traditional Kelly strategy (Section \ref{sec:going_bankrupt}), and (5) Discrete Kelly also marginally outperforms other discrete betting strategies in a modified form of geometric mean (Section \ref{sec:geometric_mean}).
+
+\ 
+
+Bettors in scenarios with discrete bet amounts can use the strategy provided to mirror Kelly strategy as closely as possible, given the constraints that discrete bet amounts place on the bettor. Furthermore, a bettor with an alternative utility function could also solve for optimal betting strategy using the same process we take in this paper.
+
+\ 
+
+Discrete Kelly strategy should be important and relevant in the real world for both bettors and oddsmakers.  For example, a Daily Fantasy Sports (DFS) player can use this strategy to choose optimal wager amounts, reducing risk of ruin while maintaining favorable expected bankroll growth.  As betting parameters shift (most commonly bankroll, as seen in \ref{sec:simulation}), the bettor can recalculate the Discrete Kelly bet to stay closely in line with Kelly strategy.  For example, our ``50/50s'' Discrete Kelly bettor from Section \ref{sec:motivation} knows to bet \$25 initially, bumping it up to \$50 after their bankroll clears \$127.54, or lowering their bet to \$10 if their bankroll drops below \$59.81.
+
+\ 
+
+Additionally, our results could be used by an oddsmaker to predict the level of investment of a Kelly bettor. In the case of DFS, the oddsmaker is guaranteed a fixed profit per contest since bettors are pitted against one another. Because of this, it would sometimes be advantageous to sacrifice some of the ``track take'' to sway a bettor towards choosing a higher wager (assuming that there is a second bettor willing to enter the contest). This effect is amplified in discrete betting scenarios, as demonstrated in Figure \ref{fig:varya_casino}.
+
+\
+
+\begin{figure}
+    \centering
+    \includegraphics[width = \textwidth]{intersection_plots/varya_casino.png}
+    \caption{Casino profit from a Kelly bettor as a function of odds ($p = \frac{2}{3}$, $B = 100000$). For the discrete scenario, profit is maximized at a = 0.68, which is where the bettor switches from a bet of \$10K to \$25K}
+    \label{fig:varya_casino}
+\end{figure}
+
+% Discuss potential future directions of the work, if any.
+
+This paper provides primitive theory for Kelly betting in simple discrete scenarios. Existing literature on the Kelly criterion can be applied to extend this result to more complex betting situations, which we leave to future work.
+
+\
+
+For example, our work assumes that the three relevant betting parameters (probability of winning the bet, payout odds, and bankroll) are either known or can be accurately estimated.  As \cite{unknownp} point out, accounting for uncertainty in the estimation of these quantities is important, and affects the Kelly betting strategy. % We have not explored how accounting for uncertainty affects the Discrete Kelly betting strategy, and we leave this task to future work.
+
+\
+
+Additionally, in situations where multiple betting parameters are changing simultaneously, one would need to solve for two-dimensional regions in which each bet is advantageous. In a DFS winner-take-all example, both the probability of winning and the odds are dependent on how many bettors enter. A Kelly bettor would need to make estimates for both parameters to determine how much to bet. 
+
+\
+
+The framework could also be extended to scenarios with multiple payout options, as DFS contests commonly have multiple ``tiers'' of winnings. This would require the bettor to estimate the probability that their lineup would produce a score reaching each payout tier. Also, it is common for a DFS bettor to have multiple lineups, each with different probabilities of winning. An application of \cite{horse} could explain how to allocate wagers in this case.
+
+\
+
+In scenarios where one of the betting parameters changes based on the wager amount (e.g. DFS providers offer a lower track take for a higher wager), it may be easiest to compute and compare explicitly the expected logarithmic utilities of each bet, but this could be another area to investigate further.
+
+% There is some practical significance in betting Discrete Kelly rather than Closest Bookend. In the simulation results presented here, a Discrete Kelly bettor chose a different wager than Closest Bookend Bet bettor would have (given the same circumstances) in about 6\% of bets. This gives Discrete Kelly a slight edge in mirroring classic Kelly strategy.
+
+\bibliography{kelly}
+
+\appendix
+
+\section{R Script for Varying Bankroll}
+\label{sec:rscript}
+
+\lstinputlisting[firstline=3]{intersection.R}
+
+(available at \url{https://github.com/jgp2053/kelly/blob/master/intersection.R})
+
+\section{Derivation of the Kelly Criterion in the Traditional Case}
+\label{sec:kelly_derivation}
+
+Assuming $a$, $p$, and $B$ are known constants, our bettor wants to select $w^*$ to maximize $g(p,a,w,B)$. We relax the integer constraint, take first-order conditions and solve to find the maximum:
+
+\begin{align*}
+    0 &= \frac{d}{dw} \bigg[g(p, a, w, B)\bigg] = p * \frac{\frac{a}{B}}{1 + \frac{aw^*}{B}} - (1-p) * \frac{\frac{1}{B}}{1 - \frac{w^*}{B}} \\
+    0 &= \frac{ap}{B + aw^*} + \frac{p-1}{B-w^*} \\
+    0 &= (B - w^*)ap + (p-1)(B + aw^*) \\
+    0 &= aBp - apw^* + Bp - B + apw^* - aw^* \\
+    aw^* &= aBp + Bp - B \\
+    w^* &= \frac{B(ap + p - 1)}{a} \\
+    w^* &= \frac{p(a+1) - 1}{a} * B
+\end{align*}
+
+\
+
+This is, of course, the optimum found by \cite{kellyoriginal}. Note also that the utility function is increasing on $[-\infty, w^*)$ and decreasing on $(w^*, \infty]$.
+
+\
+
+To see this, select $w^- < w^*$. Note that doing so increases the first fraction and decreases the second fraction so that:
+
+\begin{align*}
+    g'(w^-) &> p * \frac{\frac{a}{B}}{1 + \frac{aw^*}{B}} - (1-p) * \frac{\frac{1}{B}}{1 - \frac{w^*}{B}} = g(w^*) = 0
+\end{align*}
+
+\
+
+Similarly, choose $w^+ > w^*$. Note that doing so decreases the first fraction and increases the second fraction so that:
+
+\begin{align*}
+    g'(w^+) &< p * \frac{\frac{a}{B}}{1 + \frac{aw^*}{B}} - (1-p) * \frac{\frac{1}{B}}{1 - \frac{w^*}{B}} = g(w^*) = 0
+\end{align*}
+
+
+\end{document}
